@@ -1,93 +1,112 @@
-# Workshop Final Final No da Mas — ETL Orquestado con Airflow (Kafka opcional)
+# Workshop Final — ETL Orquestado con Airflow
 
-**Objetivo**: Construir y ejecutar un pipeline **ETL** en **Airflow** usando el dataset proporcionado.  
-> Kafka es **opcional** (no incluido en este starter); el foco aquí es **Airflow + ETL**.  
-> **No** incluir pruebas unitarias en este workshop.
+**Objetivo**: Construir un pipeline ETL robusto, profesional y replicable utilizando Apache Airflow, Docker y Python (Pandas) para procesar datos de ventas, limpiarlos, transformarlos y cargarlos en un data mart unificado.
 
-## 1) Entregables
-1. `dags/workshop_etl.py` + código en `etl/`.
-2. `docker-compose.yml` + `.env` (a partir de `.env.example`).
-3. **EDA** con **hallazgos** (notebook o Markdown).
+## 1. Arquitectura de la Solución
 
-## 2) Dataset
-- `transactions.csv` (~22350 filas, duplicados y formatos mixtos).
-- `customers.csv` (~3500 filas, algunos nulos).
-- `products.csv` (120 productos, 7 categorías).
-- `exchange_rates.csv`, `country_region.csv`.
+Este proyecto utiliza **Docker Compose** para orquestar un entorno completo de Apache Airflow.
 
-## 3) Instrucciones rápidas
-```bash
-# 1) Genera FERNET y colócalo en .env
-python - <<'PY'
-from cryptography.fernet import Fernet
-print(Fernet.generate_key().decode())
-PY
-
-# 2) Levanta servicios
-docker compose up -d
-
-# 3) UI Airflow: http://localhost:8080  (admin/admin)
-#    Activa y ejecuta el DAG 'workshop_etl'
-```
-
-## 4) Puntos de EDA (resumido)
-- Calidad: nulos, duplicados por `txn_id`, fechas inválidas, outliers.
-- Monedas: normalización a USD, cambios de distribución, regiones líderes.
-- Clientes: cohortes por `signup_ts`, marketing_source por región.
-- Productos: ticket medio y dispersión por categoría; combinaciones anómalas `country × category`.
-- Temporal: picos/caídas por día/semana.
-
-## 5) Checklist de entrega (para el equipo)
-
-**Antes de entregar, verifica:**
-- [ ] `docker compose up -d` levanta sin errores (Airflow + Postgres).
-- [ ] Accedes a Airflow en `http://localhost:8080` (usuario `admin` / `admin`).
-- [ ] El DAG **`workshop_etl`** aparece activo y corre de inicio a fin.
-- [ ] Se generan artefactos en `data/output/` (`fact_transactions.csv`, `agg_daily.csv`) **y/o** `warehouse.sqlite` con ambas tablas.
-- [ ] El README del equipo explica **paso a paso** cómo reproducir (incluye `.env`/FERNET).
-- [ ] El EDA incluye **hallazgos claros** con visualizaciones y responde a las preguntas propuestas.
-- [ ] Logs del DAG con **conteos clave** (filas leídas/descartadas, agregaciones, tiempos).
-- [ ] (Opcional) Extensión aplicada (ej.: reporte adicional o integración extra).
-
----
-
-## 6) Rúbrica de evaluación (100 pts + bonus)
-
-> El workshop es más sencillo que el proyecto final, pero mantiene los mismos componentes básicos. La nota total es sobre **100 puntos** con hasta **+5 pts** de bonus por extensiones.
-
-### A. Reproducibilidad y entorno (20 pts)
-- **Docker Compose/Arranque** (8): servicios levantan sin errores; `.env` correcto (FERNET válido); puertos documentados.
-- **README claro** (8): pasos exactos, pre‑requisitos, cómo verificar salidas; troubleshooting mínimo.
-- **Versionado** (4): versiones de imágenes/contenedores especificadas o justificadas.
-
-### B. DAG de Airflow (30 pts)
-- **Diseño de tareas** (10): separación `extract` → `transform` → `load`; dependencias correctas; nombres claros.
-- **Configuración** (8): `start_date`, `schedule_interval`, `catchup`, `retries`/`retry_delay` coherentes con el caso.
-- **Idempotencia** (6): re‑ejecuciones no duplican/corrompen outputs (evidencia en código o README).
-- **Observabilidad** (6): logs con métricas (filtrados, nulos, deduplicados, filas escritas, tiempos).
-
-### C. ETL (Transformaciones y Carga) (30 pts)
-- **Limpieza y normalización** (10): parseo robusto de `ts` (formatos mixtos), normalización de `amount` (símbolos/comas), estandarización de `status`.
-- **Integración y reglas** (10): joins con `customers`, `products`, `country_region`; conversión a USD; deduplicación por `txn_id` con criterio consistente.
-- **Agregaciones y salidas** (6): métricas diarias por `region/país/categoría` (`n`, `total_usd`); escritura a CSV/SQLite.
-- **Calidad del código** (4): estructura modular (`etl/`), funciones claras, manejo de errores razonable.
-
-### D. EDA y hallazgos (20 pts)
-- **Profundidad** (7): responde a calidad de datos, monedas, clientes, productos y temporalidad; identifica outliers/anomalías.
-- **Visualizaciones y tablas** (5): adecuadas, legibles y relevantes para la narrativa.
-- **Conclusiones** (8): insights accionables/hipótesis bien argumentadas.
+* **Orquestación**: Apache Airflow (Imagen `apache/airflow:2.8.1-python3.11`).
+* **Backend de Metadatos**: PostgreSQL (Imagen `postgres:15`).
+* **Lógica ETL**: Python 3.11 con Pandas, desacoplada en el directorio `/etl`.
+* **Almacenamiento de Datos**: Los datos crudos (`/data/raw`) y procesados (`/data/processed`) se manejan a través de volúmenes de Docker.
 
 
-### Bonus (hasta +5 pts)
-- **Extensión opcional**: pequeño reporte adicional, parámetros en DAG, o una integración extra sensata (no se requiere Kafka para el workshop).
+## 2. Cómo Desplegar la Solución
 
----
+Sigue estos pasos para levantar el pipeline.
 
-### Criterios de descuento (guía)
-- No se puede ejecutar el entorno (‑15 a ‑30).
-- DAG corre con errores o sin outputs claros (‑10 a ‑25).
-- EDA superficial o sin conclusiones (‑5 a ‑15).
-- README insuficiente para reproducir (‑5 a ‑15).
+**Requisitos Previos:**
+* Docker
+* Docker Compose
 
----
+**Pasos:**
 
+1.  **Clonar el Repositorio (si aplica):**
+    ```bash
+    git clone [URL-DEL-REPO]
+    cd [NOMBRE-DEL-REPO]
+    ```
+
+2.  **Configurar el Entorno:**
+    El archivo `.env.example` se proporciona como plantilla. Renómbrelo (o cópielo) a `.env`.
+    ```bash
+    cp .env.example .env
+    ```
+    *Nota: El archivo `.env` ya contiene una `FERNET_KEY` de ejemplo y la configuración de la base de datos. Para un entorno de producción, debe generar su propia Fernet Key.*
+
+3.  **Construir e Iniciar los Contenedores:**
+    Este comando inicializará la base de datos, el programador (scheduler) y el servidor web (webserver) de Airflow.
+    ```bash
+    docker-compose up -d
+    ```
+
+4.  **Inicializar Airflow (Primera Vez):**
+    El servicio `init` se ejecutará automáticamente (definido en el `docker-compose.yml`) para inicializar la base de datos y crear un usuario administrador.
+
+5.  **Acceder a la Interfaz de Airflow:**
+    * Abre tu navegador y ve a: `http://localhost:8080`
+    * **Usuario:** `admin`
+    * **Contraseña:** `admin`
+
+6.  **Ejecutar el DAG:**
+    * En la interfaz de Airflow, busca el DAG llamado `workshop_final_etl`.
+    * Actívalo (moviendo el interruptor a "On").
+    * Haz clic en el botón de "Play" (Trigger DAG) para iniciar una ejecución manual.
+
+7.  **Verificar el Resultado:**
+    Una vez que el DAG se complete exitosamente, encontrarás el data mart final en la siguiente ruta (dentro de tu proyecto):
+    `./data/processed/sales_data_mart.parquet`
+
+## 3. Estructura del Proyecto
+
+.├── dags/ │ └── workshop_etl.py # El DAG de Airflow que orquesta el pipeline. ├── data/ │ ├── raw/ # Datos de origen (CSV). │ │ ├── customers.csv │ │ ├── products.csv │ │ ├── transactions.csv │ │ └── exchange_rates.csv # Creado por el ETL si no existe. │ └── processed/ # Datos limpios y transformados. │ └── .gitkeep ├── etl/ # Lógica de negocio (Python/Pandas). │ ├── extract.py # Script para leer datos (E). │ ├── transform.py # Script para limpiar y enriquecer (T). │ └── load.py # Script para guardar datos (L). ├── logs/ # Logs de Airflow. ├── plugins/ # Plugins (vacío por ahora). ├── .env # Variables de entorno (PostgreSQL, Fernet Key). ├── .env.example # Plantilla de variables de entorno. ├── docker-compose.yml # Definición de servicios (Airflow, Postgres). └── README.md # Esta documentación.
+
+
+## 4. Lógica del Pipeline ETL
+
+El pipeline se divide en tres etapas claras, orquestadas por el DAG `workshop_etl.py`.
+
+### Tarea 1: Extract (extracción)
+* **Script:** `etl/extract.py`
+* **Lógica:**
+    1.  Verifica si `data/raw/exchange_rates.csv` existe. Si no, lo crea con las tasas definidas en el README (USD, EUR, MXN, BRL).
+    2.  Lee `customers.csv`, `products.csv`, `transactions.csv` y `exchange_rates.csv` y los carga en diccionarios de DataFrames de Pandas.
+    3.  Pasa este diccionario a la siguiente tarea vía XCom.
+
+### Tarea 2: Transform (transformación)
+* **Script:** `etl/transform.py`
+* **Lógica:** Esta es la etapa más compleja, basada en los hallazgos del EDA.
+    1.  **Limpieza de `transactions`:**
+        * **Nulos:** Elimina filas donde `customer_id`, `product_id` o `ts` son nulos.
+        * **Amount (Monto):** Elimina símbolos (`$`, `€`) y reemplaza comas decimales (`,`) por puntos (`.`). Convierte la columna a tipo `float`. Las filas que no se pueden convertir se eliminan.
+        * **Status (Estado):** Normaliza los estados usando el `STATUS_MAP` (ej. "Paid" -> "paid").
+        * **Timestamp (ts):** Convierte la columna a `datetime`. Las filas con fechas inválidas se eliminan.
+    2.  **Limpieza de `customers`:**
+        * **Nulos:** Rellena los `country` nulos con el valor "Unknown".
+    3.  **Conversión de Moneda:**
+        * Realiza un `join` de `transactions` con `exchange_rates` usando la columna `currency`.
+        * Crea una nueva columna `amount_usd` multiplicando `amount * rate_to_usd`.
+    4.  **Enriquecimiento (Joins):**
+        * Une `transactions` (limpio) con `products` (limpio) usando `product_id`.
+        * Une el resultado con `customers` (limpio) usando `customer_id`.
+    5.  **Selección Final:** Selecciona un conjunto final de columnas para crear el data mart unificado.
+
+### Tarea 3: Load (carga)
+* **Script:** `etl/load.py`
+* **Lógica:**
+    1.  Recibe el DataFrame transformado final de la tarea anterior.
+    2.  Guarda el DataFrame en `data/processed/sales_data_mart.parquet` usando el motor `pyarrow` para una compresión y rendimiento óptimos.
+
+## 5. Resumen del Análisis Exploratorio de Datos (EDA)
+
+El análisis inicial de los datos crudos (ver `EDA.md` o la sección en el entregable principal) reveló los siguientes problemas clave que este ETL resuelve:
+
+* **`transactions.csv` (Datos Críticos):**
+    * **Monto Sucio:** La columna `amount` contenía símbolos de moneda y comas decimales, requiriendo limpieza (regex).
+    * **Estado Inconsistente:** La columna `status` tenía múltiples valores (ej. "paid", "Paid", "PAID"), requiriendo normalización.
+    * **Nulos Críticos:** Se encontraron nulos en `customer_id`, `product_id` y `ts`. Estas filas fueron **eliminadas** por ser inutilizables.
+* **`customers.csv` (Datos Menores):**
+    * Se encontraron nulos en `country`, que fueron **imputados** con "Unknown" para no perder registros de clientes.
+* **`exchange_rates.csv` (Datos Faltantes):**
+    * El archivo no existía y fue **creado** por el script de extracción según los requisitos.

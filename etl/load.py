@@ -1,18 +1,29 @@
 import pandas as pd
-import sqlite3
-from pathlib import Path
+import os
+import logging
 
-OUT = Path(__file__).resolve().parents[1] / "data" / "output"
-OUT.mkdir(parents=True, exist_ok=True)
+def load_data(df: pd.DataFrame, processed_data_path: str, filename: str = "sales_data_mart.parquet"):
+    """
+    Guarda el DataFrame transformado en formato Parquet.
 
-def save_csv(fact: pd.DataFrame, daily: pd.DataFrame):
-    fact.to_csv(OUT/"fact_transactions.csv", index=False)
-    daily.to_csv(OUT/"agg_daily.csv", index=False)
-
-def save_sqlite(fact: pd.DataFrame, daily: pd.DataFrame, db_path: str=None):
-    if db_path is None:
-        db_path = str(OUT/"warehouse.sqlite")
-    con = sqlite3.connect(db_path)
-    fact.to_sql("fact_transactions", con, if_exists="replace", index=False)
-    daily.to_sql("agg_daily", con, if_exists="replace", index=False)
-    con.close()
+    Args:
+        df (pd.DataFrame): El DataFrame limpio y transformado.
+        processed_data_path (str): Ruta al directorio de datos procesados.
+        filename (str, optional): Nombre del archivo de salida.
+    """
+    
+    # Asegurarse de que el directorio de salida exista
+    os.makedirs(processed_data_path, exist_ok=True)
+    
+    output_path = os.path.join(processed_data_path, filename)
+    
+    try:
+        logging.info(f"Iniciando carga de datos en: {output_path}")
+        df.to_parquet(output_path, index=False, engine='pyarrow')
+        logging.info(f"Carga completada exitosamente. {len(df)} filas guardadas.")
+    except IOError as e:
+        logging.error(f"Error al escribir el archivo Parquet: {e}")
+        raise
+    except Exception as e:
+        logging.error(f"Un error inesperado ocurrió durante la carga: {e}")
+        raise

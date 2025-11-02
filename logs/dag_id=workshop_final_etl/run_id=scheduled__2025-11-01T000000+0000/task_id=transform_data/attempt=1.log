@@ -1,0 +1,39 @@
+[2025-11-02T08:37:32.722+0000] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: workshop_final_etl.transform_data scheduled__2025-11-01T00:00:00+00:00 [queued]>
+[2025-11-02T08:37:32.732+0000] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: workshop_final_etl.transform_data scheduled__2025-11-01T00:00:00+00:00 [queued]>
+[2025-11-02T08:37:32.733+0000] {taskinstance.py:2170} INFO - Starting attempt 1 of 3
+[2025-11-02T08:37:32.750+0000] {taskinstance.py:2191} INFO - Executing <Task(PythonOperator): transform_data> on 2025-11-01 00:00:00+00:00
+[2025-11-02T08:37:32.757+0000] {standard_task_runner.py:60} INFO - Started process 196 to run task
+[2025-11-02T08:37:32.763+0000] {standard_task_runner.py:87} INFO - Running: ['***', 'tasks', 'run', 'workshop_final_etl', 'transform_data', 'scheduled__2025-11-01T00:00:00+00:00', '--job-id', '3', '--raw', '--subdir', 'DAGS_FOLDER/workshop_etl.py', '--cfg-path', '/tmp/tmp8ghfhwmd']
+[2025-11-02T08:37:32.768+0000] {standard_task_runner.py:88} INFO - Job 3: Subtask transform_data
+[2025-11-02T08:37:32.848+0000] {task_command.py:423} INFO - Running <TaskInstance: workshop_final_etl.transform_data scheduled__2025-11-01T00:00:00+00:00 [running]> on host 00dc55057714
+[2025-11-02T08:37:32.976+0000] {taskinstance.py:2480} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='***' AIRFLOW_CTX_DAG_ID='workshop_final_etl' AIRFLOW_CTX_TASK_ID='transform_data' AIRFLOW_CTX_EXECUTION_DATE='2025-11-01T00:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2025-11-01T00:00:00+00:00'
+[2025-11-02T08:37:32.978+0000] {workshop_etl.py:70} INFO - Iniciando Tarea de Transformación (T)...
+[2025-11-02T08:37:33.094+0000] {transform.py:93} INFO - Iniciando proceso de transformación...
+[2025-11-02T08:37:33.095+0000] {transform.py:14} INFO - Iniciando limpieza de 'customers'...
+[2025-11-02T08:37:33.109+0000] {transform.py:23} INFO - 'customers' limpiado. Filas nulas en 'signup_ts' (si las hay): 0
+[2025-11-02T08:37:33.110+0000] {transform.py:28} INFO - Iniciando limpieza de 'products'...
+[2025-11-02T08:37:33.112+0000] {transform.py:37} INFO - Iniciando limpieza de 'transactions'...
+[2025-11-02T08:37:33.124+0000] {transform.py:44} INFO - Filas eliminadas por nulos críticos: 190
+[2025-11-02T08:37:33.153+0000] {transform.py:56} INFO - Filas eliminadas por 'amount' no convertible: 0
+[2025-11-02T08:37:33.168+0000] {transform.py:69} INFO - Filas eliminadas por 'ts' no convertible: 0
+[2025-11-02T08:37:33.182+0000] {transform.py:78} INFO - Limpieza de 'transactions' completa. Filas restantes: 22160 de 22350
+[2025-11-02T08:37:33.184+0000] {transform.py:101} INFO - Iniciando enriquecimiento de datos (Joins)...
+[2025-11-02T08:37:33.206+0000] {transform.py:140} INFO - Transformación y enriquecimiento completados. DataFrame final con 22160 filas.
+[2025-11-02T08:37:33.207+0000] {workshop_etl.py:77} INFO - Tarea de Transformación (T) completada.
+[2025-11-02T08:37:33.209+0000] {python.py:201} INFO - Done. Returned value was:          txn_id                  ts     status  ...   amount currency amount_usd
+0      t0000001 2025-08-03 11:46:00   refunded  ...    15.44      USD    15.4400
+1      t0000002 2025-09-22 20:18:00       paid  ...    47.19      USD    47.1900
+2      t0000003 2025-08-04 22:46:00       paid  ...   121.95      USD   121.9500
+3      t0000004 2025-09-26 21:37:00  cancelled  ...    23.03      USD    23.0300
+4      t0000005 2025-03-20 11:21:00       paid  ...   111.25      EUR   120.1500
+...         ...                 ...        ...  ...      ...      ...        ...
+22155  t0017157 2025-07-27 13:49:00   refunded  ...   149.91      EUR   161.9028
+22156  t0008192 2025-03-10 14:21:00       paid  ...  3893.00      EUR  4204.4400
+22157  t0015767 2025-07-03 14:03:00       paid  ...   406.50      MXN    23.5770
+22158  t0013979 2025-06-05 10:44:00       paid  ...    46.20      USD    46.2000
+22159  t0015912 2025-03-13 14:46:00       paid  ...    16.83      USD    16.8300
+
+[22160 rows x 13 columns]
+[2025-11-02T08:37:33.514+0000] {taskinstance.py:1138} INFO - Marking task as SUCCESS. dag_id=workshop_final_etl, task_id=transform_data, execution_date=20251101T000000, start_date=20251102T083732, end_date=20251102T083733
+[2025-11-02T08:37:33.582+0000] {local_task_job_runner.py:234} INFO - Task exited with return code 0
+[2025-11-02T08:37:33.617+0000] {taskinstance.py:3280} INFO - 1 downstream tasks scheduled from follow-on schedule check
