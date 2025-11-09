@@ -1,112 +1,208 @@
-# Workshop Final — ETL Orquestado con Airflow
+# Workshop Final: Pipeline ETL Orquestado con Airflow
 
-**Objetivo**: Construir un pipeline ETL robusto, profesional y replicable utilizando Apache Airflow, Docker y Python (Pandas) para procesar datos de ventas, limpiarlos, transformarlos y cargarlos en un data mart unificado.
+## 1. Objetivo del Proyecto
 
-## 1. Arquitectura de la Solución
+Este proyecto implementa un pipeline ETL (Extract, Transform, Load) robusto y observable, orquestado con **Apache Airflow** y completamente contenido en **Docker**.
 
-Este proyecto utiliza **Docker Compose** para orquestar un entorno completo de Apache Airflow.
+El pipeline sigue un flujo de 3 fases para procesar datos de ventas:
+1.  **Fase 1 (Staging):** Limpia, deduplica y valida los datos crudos.
+2.  **Fase 2 (Core ETL):** Transforma los datos limpios, los enriquece con datos de negocio (joins) y genera artefactos de salida (tablas de hechos y agregaciones).
+3.  **Fase 3 (Reporting):** Genera un análisis final y visualizaciones (gráficos, heatmaps) a partir de los datos procesados.
 
-* **Orquestación**: Apache Airflow (Imagen `apache/airflow:2.8.1-python3.11`).
-* **Backend de Metadatos**: PostgreSQL (Imagen `postgres:15`).
-* **Lógica ETL**: Python 3.11 con Pandas, desacoplada en el directorio `/etl`.
-* **Almacenamiento de Datos**: Los datos crudos (`/data/raw`) y procesados (`/data/processed`) se manejan a través de volúmenes de Docker.
+## 2. Arquitectura de la Solución
+
+* **Orquestación:** Apache Airflow (Imagen `apache/airflow:2.8.1-python3.11`).
+* **Entorno:** Docker Compose (con una imagen personalizada construida *en línea*).
+* **Lógica ETL:** Python 3.11 (Pandas), modularizado en el directorio `etl/`.
+* **Visualización:** Matplotlib & Seaborn (instalados en la imagen de Docker para la Fase 3).
+* **Base de Datos (Airflow):** PostgreSQL 15.
 
 
-## 2. Cómo Desplegar la Solución
 
-Sigue estos pasos para levantar el pipeline.
+---
 
-**Requisitos Previos:**
-* Docker
-* Docker Compose
+## 3. Prerrequisitos
 
-**Pasos:**
+Para ejecutar este proyecto, solo necesitas tener instalado el siguiente software en tu máquina host:
 
-1.  **Clonar el Repositorio (si aplica):**
+1.  **Docker Engine**
+2.  **Docker Compose** (usualmente incluido en la instalación de Docker Desktop).
+3.  Una **terminal** o línea de comandos (como PowerShell, CMD, Git Bash en Windows, o Terminal en macOS/Linux).
+
+No es necesario instalar Python, Airflow o PostgreSQL localmente; todo se ejecuta dentro de contenedores Docker.
+
+---
+
+## 4. Pasos para el Despliegue (Desde Cero)
+
+Sigue estos pasos en orden para levantar todo el entorno y ejecutar el pipeline.
+
+### Paso 1: Obtener el Proyecto
+Clona o descarga este repositorio en tu máquina local.
+
+### Paso 2: Crear el Archivo de Entorno (`.env`)
+1.  Busca el archivo `.env.example`.
+2.  Crea una copia de este archivo en la misma raíz del proyecto y llámala `.env`.
+    * En Windows (PowerShell): `copy .env.example .env`
+    * En macOS/Linux (Bash): `cp .env.example .env`
+
+### Paso 3: Generar y Configurar la `FERNET_KEY`
+1.  La `FERNET_KEY` es necesaria para que Airflow encripte sus conexiones.
+2.  Ejecuta el siguiente comando en tu terminal para generar una clave:
     ```bash
-    git clone [URL-DEL-REPO]
-    cd [NOMBRE-DEL-REPO]
+    python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    ```
+3.  Copia la clave generada (es una cadena larga de texto, ej: `a5fBqz...1mfaXw=`).
+4.  Abre tu archivo `.env` y pega la clave **después del signo igual** en la línea `AIRFLOW__CORE__FERNET_KEY`, así:
+    ```env
+    # .env
+    AIRFLOW__CORE__FERNET_KEY=a5fBqz9J7iR_jP9vT0x1A_g-Nq-4G1jGgYwJ-1mfaXw=
+    ...
     ```
 
-2.  **Configurar el Entorno:**
-    El archivo `.env.example` se proporciona como plantilla. Renómbrelo (o cópielo) a `.env`.
+### Paso 4: Construir la Imagen y Levantar los Servicios
+1.  **Opcional (Recomendado si ya existían):** Para asegurar un inicio 100% limpio, elimina volúmenes antiguos (esto borrará la base de datos de Airflow si ya existía).
     ```bash
-    cp .env.example .env
+    docker-compose down --volumes
     ```
-    *Nota: El archivo `.env` ya contiene una `FERNET_KEY` de ejemplo y la configuración de la base de datos. Para un entorno de producción, debe generar su propia Fernet Key.*
-
-3.  **Construir e Iniciar los Contenedores:**
-    Este comando inicializará la base de datos, el programador (scheduler) y el servidor web (webserver) de Airflow.
+2.  **¡Comando Principal!** Ejecuta el siguiente comando. Esto construirá la imagen personalizada (instalando `matplotlib`/`seaborn`) y luego iniciará todos los servicios (Postgres, Airflow, etc.).
     ```bash
-    docker-compose up -d
+    docker-compose up -d --build
     ```
+    * `--build`: Es **esencial**. Le dice a Docker que construya la imagen desde el `docker-compose.yml` (instalando las librerías).
+    * `-d`: Ejecuta los contenedores en modo "detached" (en segundo plano).
 
-4.  **Inicializar Airflow (Primera Vez):**
-    El servicio `init` se ejecutará automáticamente (definido en el `docker-compose.yml`) para inicializar la base de datos y crear un usuario administrador.
-
-5.  **Acceder a la Interfaz de Airflow:**
-    * Abre tu navegador y ve a: `http://localhost:8080`
+### Paso 5: Acceder a la Interfaz de Airflow
+1.  Espera unos 30-60 segundos para que todos los servicios se inicien.
+2.  Abre tu navegador web y ve a: **`http://localhost:8080`**
+3.  Inicia sesión con las credenciales por defecto (creadas por el contenedor `init`):
     * **Usuario:** `admin`
     * **Contraseña:** `admin`
 
-6.  **Ejecutar el DAG:**
-    * En la interfaz de Airflow, busca el DAG llamado `workshop_final_etl`.
-    * Actívalo (moviendo el interruptor a "On").
-    * Haz clic en el botón de "Play" (Trigger DAG) para iniciar una ejecución manual.
+### Paso 6: Ejecutar el Pipeline (DAG)
+1.  En la página principal de Airflow, busca el DAG llamado **`workshop_final_etl_v2`**.
+2.  **Actívalo** moviendo el interruptor "Off" a "On".
+3.  Para lanzarlo manualmente, haz clic en el botón de "Play" (▶️) a la derecha del nombre del DAG y selecciona "Trigger DAG".
+4.  Puedes hacer clic en el nombre del DAG para ver su progreso en la vista de "Graph" o "Grid". Espera a que todas las 5 tareas se completen (se pondrán de color verde oscuro).
 
-7.  **Verificar el Resultado:**
-    Una vez que el DAG se complete exitosamente, encontrarás el data mart final en la siguiente ruta (dentro de tu proyecto):
-    `./data/processed/sales_data_mart.parquet`
+---
 
-## 3. Estructura del Proyecto
+## 5. Verificación de Salidas
 
-.├── dags/ │ └── workshop_etl.py # El DAG de Airflow que orquesta el pipeline. ├── data/ │ ├── raw/ # Datos de origen (CSV). │ │ ├── customers.csv │ │ ├── products.csv │ │ ├── transactions.csv │ │ └── exchange_rates.csv # Creado por el ETL si no existe. │ └── processed/ # Datos limpios y transformados. │ └── .gitkeep ├── etl/ # Lógica de negocio (Python/Pandas). │ ├── extract.py # Script para leer datos (E). │ ├── transform.py # Script para limpiar y enriquecer (T). │ └── load.py # Script para guardar datos (L). ├── logs/ # Logs de Airflow. ├── plugins/ # Plugins (vacío por ahora). ├── .env # Variables de entorno (PostgreSQL, Fernet Key). ├── .env.example # Plantilla de variables de entorno. ├── docker-compose.yml # Definición de servicios (Airflow, Postgres). └── README.md # Esta documentación.
+Una vez que el DAG se complete exitosamente, puedes verificar los artefactos generados directamente en las carpetas de tu proyecto:
 
+* **Datos Procesados (CSV):**
+    * `./data/output/fact_transactions.csv`
+    * `./data/output/agg_daily.csv`
 
-## 4. Lógica del Pipeline ETL
+* **Reportes y Gráficos (PNG):**
+    * `./data/output/visualizations/client_marketing_region.png`
+    * `./data/output/visualizations/product_country_category_heatmap.png`
+    * `./data/output/visualizations/temporal_daily_sales.png`
+    * `...y todos los demás gráficos generados.`
 
-El pipeline se divide en tres etapas claras, orquestadas por el DAG `workshop_etl.py`.
+---
 
-### Tarea 1: Extract (extracción)
-* **Script:** `etl/extract.py`
-* **Lógica:**
-    1.  Verifica si `data/raw/exchange_rates.csv` existe. Si no, lo crea con las tasas definidas en el README (USD, EUR, MXN, BRL).
-    2.  Lee `customers.csv`, `products.csv`, `transactions.csv` y `exchange_rates.csv` y los carga en diccionarios de DataFrames de Pandas.
-    3.  Pasa este diccionario a la siguiente tarea vía XCom.
+## 6. Observabilidad y Troubleshooting
 
-### Tarea 2: Transform (transformación)
-* **Script:** `etl/transform.py`
-* **Lógica:** Esta es la etapa más compleja, basada en los hallazgos del EDA.
-    1.  **Limpieza de `transactions`:**
-        * **Nulos:** Elimina filas donde `customer_id`, `product_id` o `ts` son nulos.
-        * **Amount (Monto):** Elimina símbolos (`$`, `€`) y reemplaza comas decimales (`,`) por puntos (`.`). Convierte la columna a tipo `float`. Las filas que no se pueden convertir se eliminan.
-        * **Status (Estado):** Normaliza los estados usando el `STATUS_MAP` (ej. "Paid" -> "paid").
-        * **Timestamp (ts):** Convierte la columna a `datetime`. Las filas con fechas inválidas se eliminan.
-    2.  **Limpieza de `customers`:**
-        * **Nulos:** Rellena los `country` nulos con el valor "Unknown".
-    3.  **Conversión de Moneda:**
-        * Realiza un `join` de `transactions` con `exchange_rates` usando la columna `currency`.
-        * Crea una nueva columna `amount_usd` multiplicando `amount * rate_to_usd`.
-    4.  **Enriquecimiento (Joins):**
-        * Une `transactions` (limpio) con `products` (limpio) usando `product_id`.
-        * Une el resultado con `customers` (limpio) usando `customer_id`.
-    5.  **Selección Final:** Selecciona un conjunto final de columnas para crear el data mart unificado.
+### ¿Dónde encontrar los Logs?
 
-### Tarea 3: Load (carga)
-* **Script:** `etl/load.py`
-* **Lógica:**
-    1.  Recibe el DataFrame transformado final de la tarea anterior.
-    2.  Guarda el DataFrame en `data/processed/sales_data_mart.parquet` usando el motor `pyarrow` para una compresión y rendimiento óptimos.
+* **Opción 1 (Recomendada - UI de Airflow):**
+    1.  Haz clic en el DAG `workshop_final_etl_v2`.
+    2.  Ve a la vista "Grid".
+    3.  Haz clic en uno de los cuadrados (una tarea) que se haya ejecutado.
+    4.  En el menú emergente, haz clic en "Log". Aquí verás todos los `print()` y `logging.info()` de los scripts de Python (ej. los `[Insight Cliente]...` del `EDA_FINAL.py`).
 
-## 5. Resumen del Análisis Exploratorio de Datos (EDA)
+* **Opción 2 (Archivos Físicos):**
+    * Todos los logs de ejecución de tareas se guardan en la carpeta `./logs` de tu proyecto, mapeados desde el contenedor.
 
-El análisis inicial de los datos crudos (ver `EDA.md` o la sección en el entregable principal) reveló los siguientes problemas clave que este ETL resuelve:
+### Errores Comunes y Soluciones
 
-* **`transactions.csv` (Datos Críticos):**
-    * **Monto Sucio:** La columna `amount` contenía símbolos de moneda y comas decimales, requiriendo limpieza (regex).
-    * **Estado Inconsistente:** La columna `status` tenía múltiples valores (ej. "paid", "Paid", "PAID"), requiriendo normalización.
-    * **Nulos Críticos:** Se encontraron nulos en `customer_id`, `product_id` y `ts`. Estas filas fueron **eliminadas** por ser inutilizables.
-* **`customers.csv` (Datos Menores):**
-    * Se encontraron nulos en `country`, que fueron **imputados** con "Unknown" para no perder registros de clientes.
-* **`exchange_rates.csv` (Datos Faltantes):**
-    * El archivo no existía y fue **creado** por el script de extracción según los requisitos.
+* **Error: `Permission denied` al intentar escribir en `./logs`**
+    * **Síntoma:** Los contenedores `scheduler` o `webserver` fallan al iniciarse, o el contenedor `init` muestra un error de permisos.
+    * **Causa:** El usuario de Airflow (UID 50000) dentro del contenedor no tiene permisos de escritura sobre la carpeta `./logs` en tu máquina host.
+    * **Solución:** El contenedor `init` está diseñado para arreglar esto automáticamente al ejecutarse como `root` y aplicar `chmod 777`. Si el problema persiste, detén todo (`docker-compose down`) y vuelve a intentarlo.
+
+* **Error: `Invalid login` (admin/admin no funciona)**
+    * **Síntoma:** No puedes iniciar sesión en `http://localhost:8080`.
+    * **Causa:** El contenedor `init` falló *antes* de poder crear el usuario. Esto suele pasar si el `airflow db init` falló o si el contenedor se detuvo prematuramente.
+    * **Solución:**
+        1.  Verifica los logs del contenedor `init`: `docker-compose logs airflow-init`.
+        2.  La solución más robusta es borrar la base de datos (que puede estar en un estado corrupto) y empezar de nuevo:
+            ```bash
+            docker-compose down --volumes 
+            docker-compose up -d --build
+            ```
+
+* **Error: `Broken DAG` (ImportError: No module named 'matplotlib')**
+    * **Síntoma:** El DAG `workshop_final_etl_v2` aparece con un error rojo en la UI.
+    * **Causa:** El script del DAG o uno de sus módulos (como `EDA_FINAL.py`) importa una librería que no está instalada en el contenedor de Airflow.
+    * **Solución:** Este error *no debería* ocurrir con el `docker-compose.yml` actual, ya que instala `matplotlib` y `seaborn`. Si añades una **nueva** librería (ej. `scikit-learn`), debes añadirla al `dockerfile_inline` en `docker-compose.yml`:
+        ```yaml
+        # ...
+        dockerfile_inline: |
+          FROM apache/airflow:2.8.1-python3.11
+          RUN pip install --no-cache-dir matplotlib seaborn scikit-learn # <--- Añadir aquí
+        # ...
+        ```
+        Y luego **re-construir** la imagen: `docker-compose up -d --build`.
+
+---
+
+## 7. Estructura del Proyecto
+
+. 
+├── dags/ 
+   │ 
+   └── workshop_etl.py # DAG principal de Airflow que define el flujo de 5 tareas. 
+├── data/ 
+   │ 
+   ├── raw/ # Datos fuente (CSV). 
+   │ 
+   ├── staging/ # Datos limpios intermedios (Parquet) - Creados por la Fase 1. 
+   │ 
+   └── output/ # Artefactos finales - Creados por la Fase 2 y 3. 
+      │ 
+      ├── visualizations/ # Gráficos (PNG) 
+      │ 
+      └── *.csv # Tablas de datos (CSV)
+├── etl/ 
+   │ 
+   ├── EDA.py # FASE 1: Limpieza (Raw -> Staging). 
+   │ 
+   ├── extract.py # FASE 2: Extracción (Staging -> Memoria). 
+   │ 
+   ├── transform.py # FASE 2: Transformación (Joins, Agregaciones). 
+   │ 
+   ├── load.py # FASE 2: Carga (Memoria -> Output CSV). 
+   │ 
+   └── EDA_FINAL.py # FASE 3: Reporte y Visualización (Output -> Gráficos). 
+├── logs/ # Logs de Airflow (mapeados al host). 
+├── .env # Variables de entorno (¡SECRETO!) 
+├── .env.example # Plantilla para .env 
+├── docker-compose.yml # Definición de servicios (TODO-EN-UNO). 
+└── README.md # Esta documentación.
+
+## 8. Lógica del Pipeline (Detalle de Tareas)
+
+El DAG `workshop_final_etl_v2` consta de 5 tareas secuenciales:
+
+1.  **`initial_cleaning_and_eda`**
+    * **Script:** `etl/EDA.py`
+    * **Acción:** Lee los CSV de `data/raw/`. Aplica la limpieza profunda (nulos, duplicados, outliers, formatos). Guarda los DataFrames limpios como `.parquet` en `data/staging/`.
+
+2.  **`extract_cleaned_data`**
+    * **Script:** `etl/extract.py`
+    * **Acción:** Lee los archivos `.parquet` de `data/staging/`. También lee `country_region.csv` (manejando el caso especial de "NA"), y pasa todos los DataFrames a la siguiente tarea vía XCom.
+
+3.  **`transform_business_logic`**
+    * **Script:** `etl/transform.py`
+    * **Acción:** Aplica la lógica de negocio. Realiza los `joins` entre transacciones, clientes, productos y regiones. Genera dos DataFrames finales: `fact_transactions` (tabla de hechos detallada) y `agg_daily` (agregación diaria).
+
+4.  **`load_final_csv_outputs`**
+    * **Script:** `etl/load.py`
+    * **Acción:** Toma los dos DataFrames de la tarea anterior y los escribe como CSV (`fact_transactions.csv`, `agg_daily.csv`) en el directorio `data/output/`.
+
+5.  **`final_analysis_and_reporting`**
+    * **Script:** `etl/EDA_FINAL.py`
+    * **Acción:** Lee los CSV finales de `data/output/`. Realiza agregaciones (por día de la semana, país/categoría) y genera todas las visualizaciones (`.png`), guardándolas en `data/output/visualizations/`. También imprime los `[Insights]` clave en los logs de Airflow.

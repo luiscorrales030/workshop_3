@@ -1,66 +1,70 @@
 import pandas as pd
 import os
 import logging
+import numpy as np
 
-# Configurar logging profesional
+# Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def create_exchange_rates(filepath: str, data: dict):
+def extract_data(staging_data_path: str, raw_data_path: str) -> dict:
     """
-    Crea el archivo de tasas de cambio si no existe.
-    """
-    if not os.path.exists(filepath):
-        try:
-            logging.info(f"Creando archivo de tasas de cambio en: {filepath}")
-            df = pd.DataFrame(data.items(), columns=['currency', 'rate_to_usd'])
-            df.to_csv(filepath, index=False)
-        except IOError as e:
-            logging.error(f"No se pudo escribir el archivo de tasas de cambio: {e}")
-            raise
-    else:
-        logging.info("El archivo de tasas de cambio ya existe, no se sobrescribe.")
-
-def extract_data(raw_data_path: str) -> dict:
-    """
-    Carga todos los datasets crudos desde CSV a DataFrames de pandas.
-    Crea el archivo de tasas de cambio si es necesario.
+    Carga los datos limpios de la etapa 'staging' y los datos de
+    referencia necesarios (country_region) de 'raw'.
 
     Args:
-        raw_data_path (str): Ruta al directorio de datos crudos.
+        staging_data_path (str): Ruta al directorio de datos 'staging'.
+        raw_data_path (str): Ruta al directorio de datos 'raw'.
 
     Returns:
-        dict: Un diccionario de DataFrames (ej. {"customers": df, "products": df, ...})
+        dict: Un diccionario de DataFrames (limpios).
     """
-    logging.info(f"Iniciando extracción de datos desde: {raw_data_path}")
+    logging.info(f"Iniciando extracción de datos limpios desde: {staging_data_path}")
     
     # Definir rutas de archivos
-    customers_path = os.path.join(raw_data_path, 'customers.csv')
-    products_path = os.path.join(raw_data_path, 'products.csv')
-    transactions_path = os.path.join(raw_data_path, 'transactions.csv')
-    exchange_rates_path = os.path.join(raw_data_path, 'exchange_rates.csv')
-
-    # 1. Asegurar que existe el archivo de tasas de cambio (requisito del README)
-    rates_data = {
-        "USD": 1.0,
-        "EUR": 1.08,
-        "MXN": 0.058,
-        "BRL": 0.18
-    }
-    create_exchange_rates(exchange_rates_path, rates_data)
-
-    # 2. Cargar todos los datasets
+    txns_path = os.path.join(staging_data_path, 'txns_cleaned.parquet')
+    customers_path = os.path.join(staging_data_path, 'customers_cleaned.parquet')
+    products_path = os.path.join(staging_data_path, 'products_cleaned.parquet')
+    country_region_path = os.path.join(raw_data_path, 'country_region.csv')
+    
     try:
         dfs = {
-            "customers": pd.read_csv(customers_path),
-            "products": pd.read_csv(products_path),
-            "transactions": pd.read_csv(transactions_path),
-            "exchange_rates": pd.read_csv(exchange_rates_path)
+            "transactions": pd.read_parquet(txns_path),
+            "customers": pd.read_parquet(customers_path),
+            "products": pd.read_parquet(products_path),
         }
-        logging.info("Extracción de todos los archivos completada exitosamente.")
+
+        logging.info("Cargando 'country_region.csv' con na_filter=False para leer 'NA' como string.")
+        
+        # 1. Leer el CSV sin filtro de nulos (na_filter=False)
+        #    Esto lee todo como string, incluyendo "NA", "", "NULL", etc.
+        df_cr = pd.read_csv(
+            country_region_path,
+            na_filter=False,  # No detectar nulos automáticamente
+            dtype=str         # Tratar todas las columnas como string
+        )
+        
+        # 2. Aplicar el mapeo 'NA' -> 'NORTHAMERICA' para evitar que el dropna reemplace por error la region NA, y otros errores relacionados a esto
+        logging.info("Aplicando mapeo solicitado: 'NA' -> 'NORTHAMERICA' en 'region'")
+        df_cr['region'] = df_cr['region'].replace(
+            to_replace='NA', 
+            value='NORTHAMERICA'
+        )
+        
+        # 3. Ahora, reemplazar strings vacíos ('') u otros nulos no deseados con un NaN real
+        #    (ya que na_filter=False también los leyó como strings)
+        df_cr.replace(['', 'NULL', 'N/A', 'n/a', 'NaN'], np.nan, inplace=True)
+        
+        # 4. Llenar cualquier NaN real (celdas vacías, etc.) con 'Unknown'
+        df_cr['region'] = df_cr['region'].fillna('Unknown')
+        
+        dfs["country_region"] = df_cr
+
+        logging.info("Extracción de datos de staging completada exitosamente.")
         return dfs
+    
     except FileNotFoundError as e:
         logging.error(f"Error en la extracción: Archivo no encontrado. {e}")
         raise
-    except pd.errors.EmptyDataError as e:
-        logging.error(f"Error en la extracción: Archivo vacío o corrupto. {e}")
+    except Exception as e:
+        logging.error(f"Error en la extracción: {e}")
         raise
