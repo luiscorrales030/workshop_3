@@ -18,7 +18,6 @@ El pipeline sigue un flujo de 3 fases para procesar datos de ventas:
 * **Base de Datos (Airflow):** PostgreSQL 15.
 
 
-
 ---
 
 ## 3. Prerrequisitos
@@ -38,29 +37,24 @@ No es necesario instalar Python, Airflow o PostgreSQL localmente; todo se ejecut
 Sigue estos pasos en orden para levantar todo el entorno y ejecutar el pipeline.
 
 ### Paso 1: Obtener el Proyecto
-Clona o descarga este repositorio en tu máquina local.
+Clona este repositorio.
 
-### Paso 2: Crear el Archivo de Entorno (`.env`)
-1.  Busca el archivo `.env.example`.
-2.  Crea una copia de este archivo en la misma raíz del proyecto y llámala `.env`.
-    * En Windows (PowerShell): `copy .env.example .env`
-    * En macOS/Linux (Bash): `cp .env.example .env`
 
-### Paso 3: Generar y Configurar la `FERNET_KEY`
+### Paso 2: Generar y Configurar la `FERNET_KEY`
 1.  La `FERNET_KEY` es necesaria para que Airflow encripte sus conexiones.
 2.  Ejecuta el siguiente comando en tu terminal para generar una clave:
     ```bash
     python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     ```
 3.  Copia la clave generada (es una cadena larga de texto, ej: `a5fBqz...1mfaXw=`).
-4.  Abre tu archivo `.env` y pega la clave **después del signo igual** en la línea `AIRFLOW__CORE__FERNET_KEY`, así:
+4.  Abre el archivo `.env` y pega la clave **después del signo igual** en la línea `AIRFLOW__CORE__FERNET_KEY`, así:
     ```env
     # .env
     AIRFLOW__CORE__FERNET_KEY=a5fBqz9J7iR_jP9vT0x1A_g-Nq-4G1jGgYwJ-1mfaXw=
     ...
     ```
 
-### Paso 4: Construir la Imagen y Levantar los Servicios
+### Paso 3: Construir la Imagen y Levantar los Servicios
 1.  **Opcional (Recomendado si ya existían):** Para asegurar un inicio 100% limpio, elimina volúmenes antiguos (esto borrará la base de datos de Airflow si ya existía).
     ```bash
     docker-compose down --volumes
@@ -72,17 +66,17 @@ Clona o descarga este repositorio en tu máquina local.
     * `--build`: Es **esencial**. Le dice a Docker que construya la imagen desde el `docker-compose.yml` (instalando las librerías).
     * `-d`: Ejecuta los contenedores en modo "detached" (en segundo plano).
 
-### Paso 5: Acceder a la Interfaz de Airflow
-1.  Espera unos 30-60 segundos para que todos los servicios se inicien.
+### Paso 4: Acceder a la Interfaz de Airflow
+1.  Espera unos 60 segundos para que todos los servicios se inicien.
 2.  Abre tu navegador web y ve a: **`http://localhost:8080`**
 3.  Inicia sesión con las credenciales por defecto (creadas por el contenedor `init`):
     * **Usuario:** `admin`
     * **Contraseña:** `admin`
 
-### Paso 6: Ejecutar el Pipeline (DAG)
+### Paso 5: Ejecutar el Pipeline (DAG)
 1.  En la página principal de Airflow, busca el DAG llamado **`workshop_final_etl_v2`**.
 2.  **Actívalo** moviendo el interruptor "Off" a "On".
-3.  Para lanzarlo manualmente, haz clic en el botón de "Play" (▶️) a la derecha del nombre del DAG y selecciona "Trigger DAG".
+3.  Para lanzarlo manualmente (aunque no es necesario), haz clic en el botón de "Play" (▶️) a la derecha del nombre del DAG y selecciona "Trigger DAG".
 4.  Puedes hacer clic en el nombre del DAG para ver su progreso en la vista de "Graph" o "Grid". Espera a que todas las 5 tareas se completen (se pondrán de color verde oscuro).
 
 ---
@@ -107,7 +101,7 @@ Una vez que el DAG se complete exitosamente, puedes verificar los artefactos gen
 
 ### ¿Dónde encontrar los Logs?
 
-* **Opción 1 (Recomendada - UI de Airflow):**
+* **Opción 1 (UI de Airflow):**
     1.  Haz clic en el DAG `workshop_final_etl_v2`.
     2.  Ve a la vista "Grid".
     3.  Haz clic en uno de los cuadrados (una tarea) que se haya ejecutado.
