@@ -149,41 +149,8 @@ Una vez que el DAG se complete exitosamente, puedes verificar los artefactos gen
 
 ---
 
-## 7. Estructura del Proyecto
 
-. 
-├── dags/ 
-   │ 
-   └── workshop_etl.py # DAG principal de Airflow que define el flujo de 5 tareas. 
-├── data/ 
-   │ 
-   ├── raw/ # Datos fuente (CSV). 
-   │ 
-   ├── staging/ # Datos limpios intermedios (Parquet) - Creados por la Fase 1. 
-   │ 
-   └── output/ # Artefactos finales - Creados por la Fase 2 y 3. 
-      │ 
-      ├── visualizations/ # Gráficos (PNG) 
-      │ 
-      └── *.csv # Tablas de datos (CSV)
-├── etl/ 
-   │ 
-   ├── EDA.py # FASE 1: Limpieza (Raw -> Staging). 
-   │ 
-   ├── extract.py # FASE 2: Extracción (Staging -> Memoria). 
-   │ 
-   ├── transform.py # FASE 2: Transformación (Joins, Agregaciones). 
-   │ 
-   ├── load.py # FASE 2: Carga (Memoria -> Output CSV). 
-   │ 
-   └── EDA_FINAL.py # FASE 3: Reporte y Visualización (Output -> Gráficos). 
-├── logs/ # Logs de Airflow (mapeados al host). 
-├── .env # Variables de entorno (¡SECRETO!) 
-├── .env.example # Plantilla para .env 
-├── docker-compose.yml # Definición de servicios (TODO-EN-UNO). 
-└── README.md # Esta documentación.
-
-## 8. Lógica del Pipeline (Detalle de Tareas)
+## 7. Lógica del Pipeline (Detalle de Tareas)
 
 El DAG `workshop_final_etl_v2` consta de 5 tareas secuenciales:
 
