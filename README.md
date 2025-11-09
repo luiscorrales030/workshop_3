@@ -65,6 +65,7 @@ Clona este repositorio.
     ```
     * `--build`: Es **esencial**. Le dice a Docker que construya la imagen desde el `docker-compose.yml` (instalando las librerías).
     * `-d`: Ejecuta los contenedores en modo "detached" (en segundo plano).
+    * Si tienes problemas con el daemon de docker o no hay conexion: `sudo systemctl start docker`
 
 ### Paso 4: Acceder a la Interfaz de Airflow
 1.  Espera unos 60 segundos para que todos los servicios se inicien.
