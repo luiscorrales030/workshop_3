@@ -166,7 +166,7 @@ Para identificar patrones de compra, se generó un heatmap (Top 20 países vs. C
 ### Picos y Caídas por Día (Fase 1 y 2)
 * **Proceso**: `EDA.py` analizó las ventas diarias agregadas, `EDA_FINAL.py` las graficó.
 * **Hallazgo Clave (Anomalía)**: Se detectó un pico de ventas masivo.
-    * El log `initial_cleaning_and_eda` muestra un `max` de **$331512** en ventas diarias, comparado con una media de **$426.22**.
+    * El log `initial_cleaning_and_eda` muestra un `max` de **$358032.96** en ventas diarias, comparado con una media de **$355.29**.
     * El log `final_analysis_and_reporting` identifica la fecha exacta:
         ```
         [Insight Temporal] El día pico de ventas fue 2025-02-11.
