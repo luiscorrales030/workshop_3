@@ -171,7 +171,7 @@ Para identificar patrones de compra, se generó un heatmap (Top 20 países vs. C
         ```
         [Insight Temporal] El día pico de ventas fue 2025-02-11.
         ```
-* **Visualización**: El gráfico de líneas temporales muestra claramente esta anomalía extrema el 2 de noviembre de 2025, que distorsiona el resto de la gráfica y debe ser investigada (¿un evento de ventas, un error de datos, una carga masiva?).
+* **Visualización**: El gráfico de líneas temporales muestra claramente esta anomalía extrema el 11 de febrero de 2025, que distorsiona el resto de la gráfica y debe ser investigada (¿un evento de ventas, un error de datos, una carga masiva?).
 
 ![Ventas Diarias](temporal_daily_sales.png)
 
